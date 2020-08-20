@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using DataAcessLayer.Context;
 using System.Data.Entity;
 using DataAcessLayer.Interfaces;
+using DataAcessLayer.Extensions;
 namespace DataAcessLayer.Repository
 {
     public class VehicleMakeRepository : IVehicleMakeRepository
@@ -15,6 +16,16 @@ namespace DataAcessLayer.Repository
         public VehicleMakeRepository(VehicleContext context)
         {
             this.context = context;
+        }
+        public async Task<IEnumerable<VehicleMake>> GetMakesList(VehicleFilters filter, VehiclePaging pageing)
+        {
+            IQueryable<VehicleMake> makes = from make in context.VehicleMakes select make;
+            if (filter.Filters())
+            {
+                makes = makes.Where(m => m.Name.Contains(filter.FilterBy) || m.Abrv.Contains(filter.FilterBy));
+            }
+            pageing.TotalItems = makes.Count();
+            return await makes.OrderBy(m => m.Name).Skip(pageing.Skip).Take(pageing.PageSize).ToListAsync();
         }
         public async Task<IEnumerable<VehicleMake>> GetMakes()
         {

@@ -16,7 +16,7 @@ using VehicleMVCProject.Auto_Mapper;
 using DataAcessLayer.Interfaces;
 using DataAcessLayer.Service;
 using Ninject;
-
+using DataAcessLayer.Extensions;
 
 namespace VehicleMVCProject.Controllers
 {
@@ -25,38 +25,27 @@ namespace VehicleMVCProject.Controllers
         private VehicleContext db = new VehicleContext();
         private IVehicleMakeService _vehicleService;
         private IMapper _mapper;
-     
+
         public VehicleMakeController(IMapper mapper, IVehicleMakeService vehicleService)
         {
             this._mapper = mapper;
             this._vehicleService = vehicleService;
-            
+
         }
 
         // GET: VehicleMake
         public async Task<ActionResult> Index(string searchString, int? page, string currentFilter, string sortOrder)
         {
-            
-            ViewBag.SortOrder = sortOrder;
-            IEnumerable<VehicleMake> makes = await _vehicleService.GetMakes();
-            if(searchString != null)
-            {
-                page = 1;
-            }
-            else
-            {
-                searchString = currentFilter;
-            }
-            ViewBag.CurrentFilter = searchString;
-            if (!String.IsNullOrEmpty(searchString))
-            {
-                makes = makes.Where(m => m.Name.Contains(searchString) || m.Abrv.Contains(searchString));
-            }
-            int pageSize = 3;
-            int pageNumber = (page ?? 1);
+
+            VehicleFilters filter = new VehicleFilters(searchString, currentFilter);
+            VehiclePaging paging = new VehiclePaging(page);
+            var makes = await _vehicleService.GetMakesList(filter, paging);
+
             List<VehicleMakeViewModel> viewModel = _mapper.Map<List<VehicleMakeViewModel>>(makes);
-            return View(viewModel.ToPagedList(pageNumber, pageSize));
-                
+            var pagedList = new StaticPagedList<VehicleMakeViewModel>(viewModel, paging.Page ?? 1, paging.PageSize, paging.TotalItems);
+            SortingCheck(ViewBag, filter, paging);
+            return View(pagedList);
+
         }
 
         // GET: VehicleMake/Details/5
@@ -88,7 +77,7 @@ namespace VehicleMVCProject.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Create([Bind(Include = "Id,Name,Abrv")] VehicleMake vehicleMake)
         {
-            
+
             if (ModelState.IsValid)
             {
                 await _vehicleService.InsertMake(vehicleMake);
@@ -156,14 +145,18 @@ namespace VehicleMVCProject.Controllers
             await _vehicleService.DeleteMake(vehicleMake);
             return RedirectToAction("Index");
         }
-
-        protected override void Dispose(bool disposing)
+        private void SortingCheck(dynamic ViewBag, VehicleFilters filter, VehiclePaging page)
         {
-            if (disposing)
+            if(filter.SearchString != null)
             {
-                db.Dispose();
+                page.Page = 1;
             }
-            base.Dispose(disposing);
+            else
+            {
+                filter.SearchString = filter.CurrentFilter;
+            }
+            ViewBag.CurrentFilter = filter.SearchString;
         }
+
     }
 }

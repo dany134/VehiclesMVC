@@ -7,6 +7,8 @@ using DataAcessLayer.Models;
 using DataAcessLayer.Interfaces;
 using DataAcessLayer.Context;
 using DataAcessLayer.Repository;
+using DataAcessLayer.Extensions;
+
 namespace DataAcessLayer.Service
 {
     public class VehicleModelService : IVehicleModelService
@@ -19,6 +21,11 @@ namespace DataAcessLayer.Service
         public VehicleModelService(IVehicleModelRepository modelRepository)
         {
             _modelRepository = modelRepository;
+        }
+    
+        public async Task<IEnumerable<VehicleModel>> GetModelsList(VehicleFilters filter, VehiclePaging page)
+        {
+            return await _modelRepository.GetModelsList(filter, page);
         }
         public async Task<IEnumerable<VehicleModel>> GetModels()
         {

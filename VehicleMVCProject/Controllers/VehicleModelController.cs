@@ -15,16 +15,19 @@ using PagedList;
 using VehicleMVCProject.Auto_Mapper;
 using DataAcessLayer.Interfaces;
 using DataAcessLayer.Service;
+using DataAcessLayer.Extensions;
+
 namespace VehicleMVCProject.Controllers
 {
     public class VehicleModelController : Controller
     {
-        private VehicleContext db = new VehicleContext();
-        private IVehicleModelService _modelService;    
+        private IVehicleModelService _modelService;
+        private IVehicleMakeService _makeService;
         private IMapper _mapper;
      
-        public VehicleModelController(IMapper mapper, IVehicleModelService vehicleService)
+        public VehicleModelController(IMapper mapper, IVehicleModelService vehicleService, IVehicleMakeService makeService)
         {
+            _makeService = makeService;
             this._mapper = mapper;
             _modelService = vehicleService;
         }
@@ -32,34 +35,28 @@ namespace VehicleMVCProject.Controllers
         // GET: VehicleModel
         public async Task<ActionResult> Index(string vehiclemake, string search, int? page, string currentFilter, string sortOrder)
         {
-            ViewBag.CurrentSort = sortOrder;
-            IEnumerable<VehicleModel> vehicleModels = await _modelService.GetModels();
-           if(search != null)
+            var modelmake = await _modelService.GetModels();
+            ViewBag.Search = search;
+            string src = "";
+            if(vehiclemake != null)
             {
-                page = 1;
+                src = vehiclemake;
             }
             else
             {
-                search = currentFilter;
+                src = search;
             }
-            ViewBag.CurrentFilter = search;
-
-            if (!String.IsNullOrEmpty(search))
-            {
-                vehicleModels = vehicleModels.Where(v => v.Name.Contains(search) || v.Abrv.Contains(search) || v.VehicleMake.Name.Contains(search));
-                ViewBag.Search = search;
-            }
-            var makes = vehicleModels.OrderBy(v => v.VehicleMake.Name).Select(v => v.VehicleMake.Name).Distinct();
-            if (!String.IsNullOrEmpty(vehiclemake))
-            {
-                vehicleModels = vehicleModels.Where(v => v.VehicleMake.Name == vehiclemake);
-            }
-
-            int pageSize = 3;
-            int pageNumber = (page ?? 1);
+            VehicleFilters filter = new VehicleFilters(src, currentFilter);
+            VehiclePaging paging = new VehiclePaging(page);
+          
+            var models = await _modelService.GetModelsList(filter, paging);
+            var makes = modelmake.Select(m => m.VehicleMake.Name).Distinct();
+            
             ViewBag.VehicleMake = new SelectList(makes);
-            List<VehicleModelViewModel> viewModel = _mapper.Map<List<VehicleModelViewModel>>(vehicleModels);
-            return View(viewModel.ToPagedList(pageNumber, pageSize));
+            List<VehicleModelViewModel> viewModel = _mapper.Map<List<VehicleModelViewModel>>(models);
+            var pagedList = new StaticPagedList<VehicleModelViewModel>(viewModel, paging.Page ?? 1, paging.PageSize, paging.TotalItems);
+            FilteringCheck(ViewBag, filter, paging);
+            return View(pagedList);
         }
 
         // GET: VehicleModel/Details/5
@@ -79,9 +76,11 @@ namespace VehicleMVCProject.Controllers
         }
 
         // GET: VehicleModel/Create
-        public ActionResult Create()
+        public async Task<ActionResult> Create()
         {
-            ViewBag.VehicleMakeID = new SelectList(db.VehicleMakes, "Id", "Name");
+            IEnumerable<VehicleMake> makes = await _makeService.GetMakes();
+
+            ViewBag.VehicleMakeID = new SelectList(makes, "Id", "Name");
             return View();
         }
 
@@ -97,8 +96,8 @@ namespace VehicleMVCProject.Controllers
                 await _modelService.InsertModel(vehicleModel);
                 return RedirectToAction("Index");
             }
-
-            ViewBag.VehicleMakeID = new SelectList(db.VehicleMakes, "Id", "Name", vehicleModel.VehicleMakeID);
+            IEnumerable<VehicleMake> makes = await _makeService.GetMakes();
+            ViewBag.VehicleMakeID = new SelectList(makes, "Id", "Name", vehicleModel.VehicleMakeID);
             VehicleModelViewModel viewModel = _mapper.Map<VehicleModelViewModel>(vehicleModel);
             return View(viewModel);
         }
@@ -116,7 +115,8 @@ namespace VehicleMVCProject.Controllers
             {
                 return HttpNotFound();
             }
-            ViewBag.VehicleMakeID = new SelectList(db.VehicleMakes, "Id", "Name", vehicleModel.VehicleMakeID);
+            IEnumerable<VehicleMake> makes = await _makeService.GetMakes();
+            ViewBag.VehicleMakeID = new SelectList(makes, "Id", "Name", vehicleModel.VehicleMakeID);
             VehicleModelViewModel viewModel = _mapper.Map<VehicleModelViewModel>(vehicleModel);
             return View(viewModel);
         }
@@ -133,7 +133,8 @@ namespace VehicleMVCProject.Controllers
                await _modelService.UpdateModel(vehicleModel);
                 return RedirectToAction("Index");
             }
-            ViewBag.VehicleMakeID = new SelectList(db.VehicleMakes, "Id", "Name", vehicleModel.VehicleMakeID);
+            IEnumerable<VehicleMake> makes = await _makeService.GetMakes();
+            ViewBag.VehicleMakeID = new SelectList(makes, "Id", "Name", vehicleModel.VehicleMakeID);
             VehicleModelViewModel viewModel = _mapper.Map<VehicleModelViewModel>(vehicleModel);
             return View(viewModel);
         }
@@ -162,6 +163,18 @@ namespace VehicleMVCProject.Controllers
             VehicleModel vehicleModel = await _modelService.GetModelById(id);
             await _modelService.DeleteModel(vehicleModel);
             return RedirectToAction("Index");
+        }
+        private void FilteringCheck(dynamic ViewBag, VehicleFilters filter, VehiclePaging page)
+        {
+            if(filter.SearchString != null)
+            {
+                page.Page = 1;
+            }
+            else
+            {
+                filter.SearchString = filter.CurrentFilter;
+            }
+            ViewBag.CurrentFilter = filter.SearchString;
         }
 
       

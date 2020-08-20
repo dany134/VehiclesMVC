@@ -72,12 +72,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Context\VehicleContext.cs" />
+    <Compile Include="Extensions\VehicleFilters.cs" />
+    <Compile Include="Extensions\VehiclePaging.cs" />
+    <Compile Include="Interfaces\IVehicleFilters.cs" />
     <Compile Include="Interfaces\IVehicleMake.cs" />
     <Compile Include="Interfaces\IVehicleMakeRepository.cs" />
     <Compile Include="Interfaces\IVehicleMakeService.cs" />
     <Compile Include="Interfaces\IVehicleModel.cs" />
     <Compile Include="Interfaces\IVehicleModelRepository.cs" />
     <Compile Include="Interfaces\IVehicleModelService.cs" />
+    <Compile Include="Interfaces\IVehiclePaging.cs" />
     <Compile Include="Migrations\202008051527319_InitialCreate.cs" />
     <Compile Include="Migrations\202008051527319_InitialCreate.designer.cs">
       <DependentUpon>202008051527319_InitialCreate.cs</DependentUpon>

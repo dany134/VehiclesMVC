@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DataAcessLayer.Extensions;
 using DataAcessLayer.Models;
 namespace DataAcessLayer.Interfaces
 {
     public interface IVehicleModelRepository : IDisposable
     {
+      
+        Task<IEnumerable<VehicleModel>> GetModelsList(VehicleFilters filter, VehiclePaging page);
         Task<IEnumerable<VehicleModel>> GetModels();
         Task<VehicleModel> GetModelById(int? modelId);
         Task<bool> InsertModel(VehicleModel model);

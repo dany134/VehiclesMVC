@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Data.Entity;
 using DataAcessLayer.Context;
 using DataAcessLayer.Models;
+using DataAcessLayer.Extensions;
 using DataAcessLayer.Interfaces;
 namespace DataAcessLayer.Repository
 {
@@ -16,6 +17,18 @@ namespace DataAcessLayer.Repository
         {
             this.context = context;
             
+        }
+     
+     
+        public async Task<IEnumerable<VehicleModel>> GetModelsList(VehicleFilters filter, VehiclePaging page)
+        {
+            IQueryable<VehicleModel> model = from m in context.VehicleModels.Include(m => m.VehicleMake) select m;
+            if (filter.Filters())
+            {
+                model = model.Where(v => v.Name.Contains(filter.FilterBy) || v.Abrv.Contains(filter.FilterBy) || v.VehicleMake.Name.Contains(filter.FilterBy));
+            }
+            page.TotalItems = model.Count();
+            return await model.OrderBy(m => m.Name).Skip(page.Skip).Take(page.PageSize).ToListAsync();
         }
       
         public async Task<IEnumerable<VehicleModel>> GetModels()

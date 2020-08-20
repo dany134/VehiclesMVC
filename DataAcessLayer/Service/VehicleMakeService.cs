@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using DataAcessLayer.Repository;
 using DataAcessLayer.Interfaces;
 using DataAcessLayer.Models;
+using DataAcessLayer.Extensions;
+
 namespace DataAcessLayer.Service
 {
     public class VehicleMakeService : IVehicleMakeService
@@ -18,6 +20,10 @@ namespace DataAcessLayer.Service
         public VehicleMakeService(IVehicleMakeRepository vehicleMakeRepository)
         {
             _vehicleRepository = vehicleMakeRepository;
+        }
+        public async Task<IEnumerable<VehicleMake>> GetMakesList(VehicleFilters filter, VehiclePaging pages)
+        {
+            return await _vehicleRepository.GetMakesList(filter, pages);
         }
         public async Task<IEnumerable<VehicleMake>> GetMakes()
         {
